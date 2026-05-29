@@ -72,112 +72,6 @@ A PyCBC template waveform is matched against H1 data to confirm that the signal 
 
 ---
 
-## Main Functions in the Pipeline
-
-## `fetch_strain(detector, t_center, half_window, cache_dir=CACHE_DIR)`
-
-Downloads strain data for a given detector and time window.  
-If the data has already been downloaded, it loads the cached file instead.
-
-### Purpose
-This is the data ingestion layer of the notebook.
-
-### Why it matters
-It makes the analysis reproducible and avoids downloading the same strain repeatedly.
-
----
-
-## `whiten(strain)`
-
-Whitens the strain time series by dividing by the noise amplitude spectral density.
-
-### Purpose
-To flatten the noise spectrum and make the GW signal easier to see.
-
-### Why it matters
-Raw LIGO noise is strongly frequency-dependent. Whitening reduces that imbalance.
-
----
-
-## `bandpass(strain, f_low=30.0, f_high=400.0)`
-
-Applies a bandpass filter to retain only the useful frequency range.
-
-### Purpose
-To remove low-frequency and high-frequency noise that is not helpful for this event.
-
-### Why it matters
-GW150914 is most visible in the rough 30–400 Hz range.
-
----
-
-## `estimate_psd(detector, t_end_event, segment_duration=512, cache_dir=CACHE_DIR)`
-
-Estimates the detector’s noise power spectral density using off-source data and Welch’s method.
-
-### Purpose
-The PSD is required for matched filtering, since it describes how noise power is distributed across frequency.
-
-### Why it matters
-Matched filtering is only optimal when the noise statistics are properly modeled.
-
----
-
-## `extract_frequency_track(qtransform, t_center, half_window=0.25, snr_threshold=15.0, f_min_search=55.0, continuity_tol=15.0)`
-
-Extracts a clean chirp track from the Q-transform spectrogram.
-
-### Purpose
-To identify the bright frequency ridge corresponding to the gravitational-wave chirp.
-
-### How it works
-For each time slice:
-- it searches for the maximum power frequency,
-- rejects weak slices using an SNR threshold,
-- restricts the search to a frequency window,
-- and enforces smooth continuity from one accepted point to the next.
-
-### Why it matters
-This converts a visual spectrogram feature into quantitative \((t, f)\) data.
-
----
-
-## `pick_point(t_arr, f_arr, t_target, window=0.005)`
-
-Selects the point closest to a target time within a small window.
-
-### Purpose
-To choose stable points from the extracted track for slope estimation.
-
-### Why it matters
-The chirp-mass estimate uses two representative points on the inspiral track.
-
----
-
-## `compute_dfdt(f1, f2, t1, t2)`
-
-Computes a finite-difference estimate of the frequency derivative.
-
-### Purpose
-To estimate how quickly the GW frequency is increasing.
-
-### Why it matters
-The chirp mass is directly related to \(df/dt\) through post-Newtonian inspiral theory.
-
----
-
-## `chirp_mass_from_dfdt(dfdt, f_ref)`
-
-Inverts the leading-order post-Newtonian formula to estimate the chirp mass.
-
-### Purpose
-To convert the measured inspiral rate into a physical source parameter.
-
-### Why it matters
-The chirp mass is the best-measured mass combination in the inspiral phase.
-
----
-
 ## Data Processing Steps in Detail
 
 ### Raw strain
@@ -216,19 +110,29 @@ A SEOBNRv4 template is matched against H1 data to verify that the signal is cons
 
 The signal shows the classic gravitational-wave chirp:
 
-- the frequency rises with time,
-- the amplitude grows as the black holes spiral closer,
-- and the track ends in a merger/ringdown phase.
+* the frequency rises with time,
+* the amplitude grows as the black holes spiral closer,
+* and the track ends in a merger/ringdown phase.
 
 This is the signature of a **binary black hole coalescence**.
 
-The chirp mass estimate is based on the leading-order relation
+The chirp mass estimate is based on the leading-order post-Newtonian inspiral relation:
 
-\[
-\frac{df}{dt} = \frac{96}{5}\pi^{8/3}\left(\frac{G\mathcal{M}}{c^3}\right)^{5/3} f^{11/3}
-\]
+df/dt = (96/5) × π^(8/3) × (GMc/c³)^(5/3) × f^(11/3)
 
-which is inverted in the notebook to solve for \(\mathcal{M}\).
+where:
+
+* f is the gravitational-wave frequency,
+* df/dt is the rate at which the frequency increases,
+* G is the gravitational constant,
+* c is the speed of light,
+* Mc is the chirp mass.
+
+As the binary loses energy through gravitational-wave emission, the orbital frequency increases, producing the characteristic upward sweep seen in the spectrogram.
+
+The notebook inverts this relation to estimate the chirp mass directly from the observed frequency evolution of GW150914.
+
+This provides a direct connection between the measured chirp in the detector data and the physical properties of the binary black hole system.
 
 ---
 
